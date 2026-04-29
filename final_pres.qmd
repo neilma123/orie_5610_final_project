@@ -1,25 +1,35 @@
 ---
-title: "Final Presentation"
-format: beamer
+title: "Computation of Greeks under rough Volterra stochastic volatility models using the Malliavin calculus approach"
+author: 
+  - Neil Mascarenhas
+  - Zijie Gu
+date: today
+institute: "Cornell University"
+format:
+  beamer:
+    toc: true
+    toc-depth: 2
+    toc-title: "Contents"
 ---
 
-## Quarto
+# Background
 
-Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>.
+## Finite Difference
 
-## Bullets
+## Pathwise Derivative
 
-When you click the **Render** button a document will be generated that includes:
+## Likelihood Ratio Method and the Malliavin Approach
 
--   Content authored with markdown
--   Output from executable code
+# Numerical Experiment
 
-## Code
+## Experiment Setup
 
-When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+## Results: Vanilla Options
 
-```{r}
-1 + 1
-```
+## Results: Digital Options
 
+## Results: Gap Options
 
+# Conclusion
+
+## Conclusion
