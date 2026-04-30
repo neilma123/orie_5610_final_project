@@ -12,7 +12,9 @@ format:
     toc-title: "Contents"
 ---
 
-# Background
+## Background  
+
+
 
 ## Finite Difference
 
@@ -20,7 +22,7 @@ format:
 
 ## Likelihood Ratio Method and the Malliavin Approach
 
-# Numerical Experiment
+## Numerical Experiment
 
 ## Experiment Setup
 
@@ -29,7 +31,5 @@ format:
 ## Results: Digital Options
 
 ## Results: Gap Options
-
-# Conclusion
 
 ## Conclusion
