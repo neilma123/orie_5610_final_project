@@ -102,16 +102,6 @@ $$
 K_H(t,s)=\sqrt{2H}(t-s+\varepsilon)^{H-\frac12}.
 $$
 
-```python
-# a-RFSV.ipynb / stein-stein.ipynb
-dW1 = torch.randn(Npaths, Nsteps, device=device) * np.sqrt(dt)
-dW2 = torch.randn(Npaths, Nsteps, device=device) * np.sqrt(dt)
-dZ = rho * dW1 + np.sqrt(1 - rho**2) * dW2
-
-K_matrix[mask] = np.sqrt(2 * H) * (diff[mask] + eps)**(H - 0.5)
-Y = dZ @ K_matrix.T
-```
-
 ## $\alpha$-RFSV Volatility
 
 The first notebook implements
@@ -129,16 +119,6 @@ Special cases:
 
 - $\alpha=1$: rough Bergomi, and rough SABR $(\beta=1)$ when $r=0$.
 - $\alpha=0$: non-stationary RFSV.
-
-```python
-# a-RFSV.ipynb
-r_t = (t + eps)**(2 * H) - eps**(2 * H)
-V = V0 * torch.exp(xi * Y - 0.5 * alpha * (xi**2) * r_t)
-
-int_V2_dt = torch.sum((V**2) * dt, dim=1)
-int_V_dW = torch.sum(V * dW1, dim=1)
-S_T = S0 * torch.exp(r * T - 0.5 * int_V2_dt + int_V_dW)
-```
 
 ## Rough Stein-Stein Volatility
 
@@ -160,16 +140,6 @@ V_{t_i}
 + \nu (Y_{t_i}-Y_{t_{i-1}}).
 $$
 
-```python
-# stein-stein.ipynb
-for i in range(Nsteps):
-    dY = Y[:, i] - Y_prev
-    V_curr = V_prev + kappa * (theta - V_prev) * dt + nu * dY
-    V[:, i] = V_curr
-    V_prev = V_curr
-    Y_prev = Y[:, i]
-```
-
 # Finite Difference
 
 ## Central Difference Estimator
@@ -190,19 +160,6 @@ S_T(S_0 \pm h)=(S_0\pm h)
 rT-\frac12\int_0^T V_t^2dt+\int_0^T V_t\,dW_t
 \right).
 $$
-
-```python
-# a-RFSV.ipynb
-h_fd = max(1e-3 * S0, 0.1)
-scale_up = (S0 + h_fd) / S0
-scale_dn = (S0 - h_fd) / S0
-
-S_T_upper_fd = S_T * scale_up
-S_T_lower_fd = S_T * scale_dn
-
-delta_fd = discount_factor * (payoff_upper - payoff_lower) / (2 * h_fd)
-gamma_fd = discount_factor * (payoff_upper - 2 * payoff + payoff_lower) / h_fd**2
-```
 
 ## Bias-Variance Tradeoff
 
@@ -251,15 +208,6 @@ $$
 \mathbf{1}_{\{S_T<K\}}\frac{S_T}{S_0}
 \right].
 $$
-
-```python
-# a-RFSV.ipynb / stein-stein.ipynb
-delta_path = (
-    discount_factor
-    * payoff_digital_call(S_T, K)
-    * (S_T / S0)
-).cpu().numpy()
-```
 
 ## Where Pathwise Fails
 
@@ -380,22 +328,6 @@ $$
 \mathbb{E}\left[f(S_T)M_\Gamma\right].
 $$
 
-```python
-# a-RFSV.ipynb / stein-stein.ipynb
-W_T = torch.sum(dW1, dim=1)
-weight_delta = W_T / G_T + int_Ds_GT_ds / (G_T**2)
-
-term1 = -weight_delta
-term2 = weight_delta**2
-term3 = -(
-    T / G_T
-    - W_T * int_Ds_GT_ds / G_T**2
-    + int_Dt_Ds_GT / G_T
-    - 2 * int_Ds_GT_ds**2 / G_T**3
-)
-weight_gamma = term1 + term2 + term3
-```
-
 ## $\alpha$-RFSV Closed Forms
 
 For $\alpha$-RFSV,
@@ -441,19 +373,6 @@ $$
 \right).
 $$
 
-```python
-# a-RFSV.ipynb
-kappa_t = np.sqrt(2 * H) / (H + 0.5) * (
-    (t + eps)**(H + 0.5) - eps**(H + 0.5)
-)
-
-G_T = int_V_dt + rho * xi * (int_V_kappa_dW - int_V2_kappa_dt)
-int_Ds_GT_ds = (
-    2 * rho * xi * int_V_kappa_dt
-    + (rho * xi)**2 * (int_V_kappa2_dW - 2 * int_V2_kappa2_dt)
-)
-```
-
 ## Rough Stein-Stein Closed Forms
 
 For $t\le s$,
@@ -471,19 +390,6 @@ Because $D_sD_tV_u=0$,
 $$
 \int_0^T\int_0^T D_tD_sG_T\,ds\,dt=0.
 $$
-
-The notebook turns this deterministic derivative into a matrix:
-
-```python
-# stein-stein.ipynb
-E_matrix[mask_E] = torch.exp(-kappa * diff[mask_E]) * dt
-D_V = rho * nu * K_matrix - kappa * rho * nu * (E_matrix @ K_matrix)
-
-I_s = torch.sum(D_V, dim=1) * dt
-G_T = int_V_dt + torch.sum(I_s.unsqueeze(0) * (dW1 - V * dt), dim=1)
-int_Ds_GT_ds = 2 * torch.sum(I_s) * dt - torch.sum(I_s**2) * dt
-int_Dt_Ds_GT = 0
-```
 
 # Numerical Experiment
 
@@ -528,15 +434,6 @@ $$
 \qquad
 \text{Gap put: } \mathbf{1}_{\{S_T<K_1\}}(K_2-S_T)^+.
 $$
-
-```python
-# a-RFSV.ipynb / stein-stein.ipynb
-def payoff_gap_call(S_T, K1, K2):
-    return (S_T > K1).float() * torch.relu(S_T - K2)
-
-def payoff_gap_put(S_T, K1, K2):
-    return (S_T < K1).float() * torch.relu(K2 - S_T)
-```
 
 # Results: Vanilla Options
 
@@ -706,21 +603,6 @@ $$
 $$
 
 against a finite-difference bump.
-
-## Digital Estimator Code
-
-```python
-# a-RFSV.ipynb
-payoff = payoff_digital_call(S_T, K)
-payoff_upper = payoff_digital_call(S_T_upper, K)
-payoff_lower = payoff_digital_call(S_T_lower, K)
-
-delta_mal = discount_factor * payoff * weight_delta / S0
-delta_fd = discount_factor * (payoff_upper - payoff_lower) / (2*h)
-
-gamma_mal = discount_factor * payoff * weight_gamma / S0**2
-gamma_fd = discount_factor * (payoff_upper - 2*payoff + payoff_lower) / h**2
-```
 
 ## Digital Call Delta Convergence
 
