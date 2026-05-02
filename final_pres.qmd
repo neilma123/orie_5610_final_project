@@ -8,14 +8,41 @@ institute: "Cornell University"
 format:
   beamer:
     toc: true
-    toc-depth: 2
+    toc-depth: 1
     toc-title: "Contents"
     theme: Madrid
     colortheme: seahorse
     aspectratio: 169
+    slide-level: 3
+    include-in-header:
+      text: |
+        \useoutertheme[compress]{miniframes}
+        \setbeamertemplate{headline}{%
+          \begin{beamercolorbox}[ht=2.2ex,dp=0.8ex,center]{section in head/foot}
+            \insertsectionnavigationhorizontal{\paperwidth}{}{}
+          \end{beamercolorbox}%
+          \begin{beamercolorbox}[ht=2.2ex,dp=0.8ex,center]{subsection in head/foot}
+            \insertsubsectionnavigationhorizontal{\paperwidth}{}{}
+          \end{beamercolorbox}%
+        }
+        \setbeamercolor{mini frame}{fg=structure.fg,bg=structure.fg}
+        \setbeamercolor{mini frame in current subsection}{fg=structure.fg,bg=structure.fg}
+        \setbeamercolor{mini frame in other subsection}{fg=structure.fg,bg=white}
+        \AtBeginSubsection[]{}
+        \setbeamertemplate{section page}{%
+          \begin{centering}
+            \begin{beamercolorbox}[sep=12pt,center,rounded=true,shadow=true]{part title}
+              \usebeamerfont{section title}\insertsection\par
+            \end{beamercolorbox}
+          \end{centering}
+        }
 ---
 
-## Background  
+# Background
+
+## Background
+
+### Background
 
 For a discounted payoff
 
@@ -38,6 +65,8 @@ The project compares three estimator families:
 
 ## Finite Difference
 
+### Finite Difference
+
 $\partial_\theta V^\theta$ can be approximated by
 $$
 \partial_\theta V^\theta\approx\frac{V^{\theta+h}-V^{\theta-h}}{2h}
@@ -56,6 +85,8 @@ This discretization has bias $O(h^2)$ and variance $O(h^{-4})$ and can be very u
 
 ## Pathwise Derivative
 
+### Pathwise Derivative
+
 If the payoff function $f$ is *nice* enough, we can swap the expectation and derivative
 $$
 \partial_\theta \mathbb{E}[e^{-rT} f(S_T^\theta)]=\mathbb{E}[\partial_\theta e^{-rT} f(S_T^\theta)]
@@ -65,7 +96,9 @@ $$
 
 The pathwise method is very efficient and accurate (0 bias), when applicable.
 
-## Likelihood Ratio Method and the Malliavin Approach
+## Malliavin Approach
+
+### Likelihood Ratio Method and the Malliavin Approach
 
 If the terminal state has density $p_\theta(x)$, then we have
 $$
@@ -81,14 +114,359 @@ $$
 \partial_\theta \mathbb{E}[f(X^\theta)]=\mathbb{E}\Bigg[f(X^\theta)\cdot\delta\Bigg(\frac{\partial_\theta X^\theta h}{\int_0^Th_t\mathcal{D}_tX^\theta\mathrm{d}t}\Bigg)\Bigg]
 $$
 
-## Numerical Experiment
+# Numerical Experiment
 
-## Experiment Setup
+## Models
 
-## Results: Vanilla Options
+### Numerical Experiment
 
-## Results: Digital Options
+We test Malliavin estimators for $\Delta$ and $\Gamma$ under two rough Volterra volatility models:
 
-## Results: Gap Options
+\begin{columns}[T,totalwidth=\textwidth]
+\begin{column}{0.48\textwidth}
+\textbf{$\alpha$-RFSV / rough Bergomi}
+$$
+V_t = V_0\exp\left\{\xi Y_t-\frac12\alpha\xi^2 r(t)\right\},
+\qquad \alpha=1.
+$$
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Rough Stein--Stein}
+$$
+dV_t=\kappa(\theta-V_t)\,dt+\nu\,dY_t.
+$$
+\end{column}
+\end{columns}
 
-## Conclusion
+\vspace{0.4em}
+
+In both cases,
+$$
+Y_t=\int_0^t K_H(t,s)\,dZ_s,\qquad
+Z_s=\rho W_s+\sqrt{1-\rho^2}\widetilde W_s.
+$$
+
+## Estimator Comparison
+
+### Estimator Comparison
+
+\begin{itemize}
+\item \textbf{Malliavin:} estimate Greeks as discounted payoffs multiplied by model-specific Malliavin weights.
+\item \textbf{Finite difference:} central difference in $S_0$ using common random numbers.
+\item \textbf{Pathwise:} included for vanilla $\Delta$, where payoff differentiability permits it.
+\end{itemize}
+
+\vspace{0.4em}
+
+The convergence plots report running Monte Carlo means for $\Delta$ and $\Gamma$ with 99\% confidence intervals.
+
+# Experiment Setup
+
+## Overview
+
+### Experiment Setup
+
+\begin{itemize}
+\item Simulate terminal prices under both rough volatility models using the same rough-driver structure.
+\item Estimate $\Delta$ and $\Gamma$ for vanilla, digital, and gap payoffs.
+\item Compare Malliavin weights with finite differences; add pathwise $\Delta$ where the payoff is smooth enough.
+\end{itemize}
+
+## Simulation
+
+### Simulation
+
+\begin{itemize}
+\item Shared parameters: $S_0=100$, $r=0.05$, $T=1$, $H=0.15$, $\rho=-0.756$, $V_0=0.354$, $\varepsilon=10^{-6}$.
+\item $\alpha$-RFSV parameters: $\alpha=1$, $\xi=0.212$.
+\item Rough Stein--Stein parameters: $\kappa=2.0$, $\theta=0.5$, $\nu=0.3$.
+\item Monte Carlo design: $200{,}000$ paths, $2{,}000$ time steps, fixed seed, and log-spaced checkpoints from $1{,}000$ paths onward.
+\item Finite difference bump: $h=10^{-5}$ applied to $S_0$ with the same simulated volatility and Brownian paths.
+\end{itemize}
+
+## Payoffs
+
+### Payoffs
+
+\begin{columns}[T,totalwidth=\textwidth]
+\begin{column}{0.48\textwidth}
+\textbf{Continuous payoff}
+
+\begin{itemize}
+\item Vanilla call/put with $K=100$.
+\item Compare Malliavin, finite difference, and pathwise $\Delta$.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Discontinuous payoff}
+
+\begin{itemize}
+\item Digital call/put with $K=100$.
+\item Gap call with $(K_1,K_2)=(110,100)$.
+\item Gap put with $(K_1,K_2)=(90,100)$.
+\item Compare Malliavin against finite difference.
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.4em}
+
+For rough Stein--Stein, paths with near-zero Malliavin denominator are filtered for numerical stability.
+
+## Vanilla Payoffs
+
+### Vanilla Options
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 4.4
+#| out-width: "100%"
+
+S <- seq(50, 150, length.out = 1000)
+K <- 100
+
+vanilla_call <- pmax(S - K, 0)
+vanilla_put <- pmax(K - S, 0)
+
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 0, 0))
+
+plot(S, vanilla_call, type = "l", lwd = 3, col = "#1f77b4",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Vanilla Call")
+abline(v = K, lty = 2, col = "gray40")
+grid()
+
+plot(S, vanilla_put, type = "l", lwd = 3, col = "#d62728",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Vanilla Put")
+abline(v = K, lty = 2, col = "gray40")
+grid()
+
+par(old_par)
+```
+
+## Digital Payoffs
+
+### Digital Options
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 4.4
+#| out-width: "100%"
+
+S <- seq(50, 150, length.out = 1000)
+K <- 100
+
+digital_call <- as.numeric(S > K)
+digital_put <- as.numeric(S < K)
+
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 0, 0))
+
+plot(S, digital_call, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Digital Call", ylim = c(-0.05, 1.05))
+grid()
+lines(c(min(S), K), c(0, 0), lwd = 3, col = "#1f77b4")
+lines(c(K, max(S)), c(1, 1), lwd = 3, col = "#1f77b4")
+points(K, 0, pch = 1, cex = 1.6, lwd = 2, col = "#1f77b4")
+points(K, 1, pch = 19, cex = 1.6, col = "#1f77b4")
+
+plot(S, digital_put, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Digital Put", ylim = c(-0.05, 1.05))
+grid()
+lines(c(min(S), K), c(1, 1), lwd = 3, col = "#d62728")
+lines(c(K, max(S)), c(0, 0), lwd = 3, col = "#d62728")
+points(K, 0, pch = 1, cex = 1.6, lwd = 2, col = "#d62728")
+points(K, 1, pch = 19, cex = 1.6, col = "#d62728")
+
+par(old_par)
+```
+
+## Gap Payoffs
+
+### Gap Options
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 4.4
+#| out-width: "100%"
+
+S <- seq(50, 150, length.out = 1000)
+K2 <- 100
+K1_call <- 110
+K1_put <- 90
+
+gap_call <- as.numeric(S > K1_call) * pmax(S - K2, 0)
+gap_put <- as.numeric(S < K1_put) * pmax(K2 - S, 0)
+
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 0, 0))
+
+plot(S, gap_call, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Gap Call")
+abline(v = K2, lty = 3, col = "gray55")
+grid()
+lines(c(min(S), K1_call), c(0, 0), lwd = 3, col = "#1f77b4")
+lines(S[S >= K1_call], S[S >= K1_call] - K2, lwd = 3, col = "#1f77b4")
+points(K1_call, 0, pch = 1, cex = 1.6, lwd = 2, col = "#1f77b4")
+points(K1_call, K1_call - K2, pch = 19, cex = 1.6, col = "#1f77b4")
+
+plot(S, gap_put, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Gap Put")
+abline(v = K2, lty = 3, col = "gray55")
+grid()
+lines(S[S <= K1_put], K2 - S[S <= K1_put], lwd = 3, col = "#d62728")
+lines(c(K1_put, max(S)), c(0, 0), lwd = 3, col = "#d62728")
+points(K1_put, 0, pch = 1, cex = 1.6, lwd = 2, col = "#d62728")
+points(K1_put, K2 - K1_put, pch = 19, cex = 1.6, col = "#d62728")
+
+par(old_par)
+```
+
+## Model Paths
+
+### Simulated Price and Volatility Paths
+
+\begin{figure}
+\centering
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/stein_path.png}
+\end{minipage}%
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/rough_vol_path.png}
+\end{minipage}
+\end{figure}
+
+# Results
+
+## Vanilla Call
+
+### Vanilla Call Options
+
+\begin{figure}
+\centering
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/vanilla_call_stein.png}
+\end{minipage}%
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/vanilla_call_RFSV.png}
+\end{minipage}
+\end{figure}
+
+## Vanilla Put
+
+### Vanilla Put Options
+
+\begin{figure}
+\centering
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/vanilla_put_stein.png}
+\end{minipage}%
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/vanilla_put_RFSV.png}
+\end{minipage}
+\end{figure}
+
+## Digital Call
+
+### Digital Call Options
+
+\begin{figure}
+\centering
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/digital_call_stein.png}
+\end{minipage}%
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/digital_call_RFSV.png}
+\end{minipage}
+\end{figure}
+
+## Digital Put
+
+### Digital Put Options
+
+\begin{figure}
+\centering
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/digital_put_stein.png}
+\end{minipage}%
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/digital_put_RFSV.png}
+\end{minipage}
+\end{figure}
+
+## Gap Call
+
+### Gap Call Options
+
+\begin{figure}
+\centering
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/gap_call_stein.png}
+\end{minipage}%
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/gap_call_RFSV.png}
+\end{minipage}
+\end{figure}
+
+## Gap Put
+
+### Gap Put Options
+
+\begin{figure}
+\centering
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/gap_put_stein.png}
+\end{minipage}%
+\begin{minipage}{0.495\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{www/gap_put_RFSV.png}
+\end{minipage}
+\end{figure}
+
+# Conclusion
+
+## Summary
+
+### Conclusion
+
+\begin{itemize}
+\item Malliavin provides unbiased estimates for second order Greeks where traditional methods fail.
+\item Finite difference becomes high variance and unstable for second order Greeks on exotic options with rough volatility.
+\item Finite difference also provides poor estimates for first order Greeks on exotic options with rough volatility.
+\item Pathwise derivative is efficient for smooth vanilla deltas, but fails for discontinuous payoffs.
+\end{itemize}
+
+## References
+
+### References
+
+\footnotesize
+
+\begin{itemize}
+\item Al-Foraih, M., Bures, O., Pospisil, J., \& Vives, J. (2025). \textit{Computation of Greeks under rough Volterra stochastic volatility models using the Malliavin calculus approach}. arXiv:2312.00405v2.
+\end{itemize}
