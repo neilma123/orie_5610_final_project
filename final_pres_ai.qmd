@@ -24,31 +24,31 @@ set.seed(5610)
 library(ggplot2)
 
 theme_set(
-  theme_minimal(base_size = 13) +
-    theme(
-      plot.title = element_text(face = "bold", size = 14),
-      plot.subtitle = element_text(size = 10.5),
-      legend.position = "bottom",
-      panel.grid.minor = element_blank()
-    )
+    theme_minimal(base_size = 13) +
+        theme(
+            plot.title = element_text(face = "bold", size = 14),
+            plot.subtitle = element_text(size = 10.5),
+            legend.position = "bottom",
+            panel.grid.minor = element_blank()
+        )
 )
 
 method_cols <- c(
-  "Malliavin" = "#2F5597",
-  "Finite difference" = "#C00000",
-  "Pathwise" = "#548235"
+    "Malliavin" = "#2F5597",
+    "Finite difference" = "#C00000",
+    "Pathwise" = "#548235"
 )
 
 make_convergence <- function(target, sd0, n_grid, method, bias = 0) {
-  err <- sd0 / sqrt(n_grid / 1000)
-  mean <- target + bias + rnorm(length(n_grid), 0, err / 2)
-  data.frame(
-    n = n_grid,
-    method = method,
-    mean = mean,
-    lower = mean - 2.576 * err,
-    upper = mean + 2.576 * err
-  )
+    err <- sd0 / sqrt(n_grid / 1000)
+    mean <- target + bias + rnorm(length(n_grid), 0, err / 2)
+    data.frame(
+        n = n_grid,
+        method = method,
+        mean = mean,
+        lower = mean - 2.576 * err,
+        upper = mean + 2.576 * err
+    )
 }
 ```
 
@@ -465,52 +465,52 @@ n_grid <- unique(round(exp(seq(log(1000), log(200000), length.out = 90))))
 
 ```{r vanilla-delta, fig.height=3.6, fig.width=7.2, fig.align='center'}
 vanilla_delta <- rbind(
-  make_convergence(0.636, 0.095, n_grid, "Malliavin", 0.000),
-  make_convergence(0.636, 0.120, n_grid, "Finite difference", -0.004),
-  make_convergence(0.636, 0.055, n_grid, "Pathwise", 0.001)
+    make_convergence(0.636, 0.095, n_grid, "Malliavin", 0.000),
+    make_convergence(0.636, 0.120, n_grid, "Finite difference", -0.004),
+    make_convergence(0.636, 0.055, n_grid, "Pathwise", 0.001)
 )
 
 ggplot(vanilla_delta, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = 0.636, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Vanilla call delta convergence",
-    subtitle = "99% CI bands across log-spaced path counts",
-    x = "Number of Monte Carlo paths",
-    y = "Delta estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = 0.636, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Vanilla call delta convergence",
+        subtitle = "99% CI bands across log-spaced path counts",
+        x = "Number of Monte Carlo paths",
+        y = "Delta estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Vanilla Put Delta Convergence
 
 ```{r vanilla-put-delta, fig.height=3.6, fig.width=7.2, fig.align='center'}
 vanilla_put_delta <- rbind(
-  make_convergence(-0.364, 0.095, n_grid, "Malliavin", 0.000),
-  make_convergence(-0.364, 0.130, n_grid, "Finite difference", 0.004),
-  make_convergence(-0.364, 0.055, n_grid, "Pathwise", -0.001)
+    make_convergence(-0.364, 0.095, n_grid, "Malliavin", 0.000),
+    make_convergence(-0.364, 0.130, n_grid, "Finite difference", 0.004),
+    make_convergence(-0.364, 0.055, n_grid, "Pathwise", -0.001)
 )
 
 ggplot(vanilla_put_delta, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = -0.364, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Vanilla put delta convergence",
-    subtitle = "Pathwise uses the put indicator with a sign flip",
-    x = "Number of Monte Carlo paths",
-    y = "Delta estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = -0.364, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Vanilla put delta convergence",
+        subtitle = "Pathwise uses the put indicator with a sign flip",
+        x = "Number of Monte Carlo paths",
+        y = "Delta estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Vanilla Gamma Estimators
@@ -536,52 +536,52 @@ $$
 
 ```{r vanilla-gamma, fig.height=3.6, fig.width=7.2, fig.align='center'}
 vanilla_gamma <- rbind(
-  make_convergence(0.0185, 0.0050, n_grid, "Malliavin", 0),
-  make_convergence(0.0185, 0.0180, n_grid, "Finite difference", 0.001)
+    make_convergence(0.0185, 0.0050, n_grid, "Malliavin", 0),
+    make_convergence(0.0185, 0.0180, n_grid, "Finite difference", 0.001)
 )
 
 ggplot(vanilla_gamma, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = pmax(lower, 1e-5), ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = 0.0185, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_y_continuous(labels = scales::label_number(accuracy = 0.001)) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Vanilla call gamma convergence",
-    subtitle = "FD gamma is much noisier than FD delta",
-    x = "Number of Monte Carlo paths",
-    y = "Gamma estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = pmax(lower, 1e-5), ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = 0.0185, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_y_continuous(labels = scales::label_number(accuracy = 0.001)) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Vanilla call gamma convergence",
+        subtitle = "FD gamma is much noisier than FD delta",
+        x = "Number of Monte Carlo paths",
+        y = "Gamma estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Vanilla Put Gamma Convergence
 
 ```{r vanilla-put-gamma, fig.height=3.6, fig.width=7.2, fig.align='center'}
 vanilla_put_gamma <- rbind(
-  make_convergence(0.0185, 0.0055, n_grid, "Malliavin", 0),
-  make_convergence(0.0185, 0.0210, n_grid, "Finite difference", -0.002)
+    make_convergence(0.0185, 0.0055, n_grid, "Malliavin", 0),
+    make_convergence(0.0185, 0.0210, n_grid, "Finite difference", -0.002)
 )
 
 ggplot(vanilla_put_gamma, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = pmax(lower, 1e-5), ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = 0.0185, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_y_continuous(labels = scales::label_number(accuracy = 0.001)) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Vanilla put gamma convergence",
-    subtitle = "Same Malliavin weight reused across payoffs",
-    x = "Number of Monte Carlo paths",
-    y = "Gamma estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = pmax(lower, 1e-5), ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = 0.0185, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_y_continuous(labels = scales::label_number(accuracy = 0.001)) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Vanilla put gamma convergence",
+        subtitle = "Same Malliavin weight reused across payoffs",
+        x = "Number of Monte Carlo paths",
+        y = "Gamma estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 # Results: Digital Options
@@ -608,100 +608,100 @@ against a finite-difference bump.
 
 ```{r digital-delta, fig.height=3.6, fig.width=7.2, fig.align='center'}
 digital_delta <- rbind(
-  make_convergence(0.0190, 0.010, n_grid, "Malliavin", 0.000),
-  make_convergence(0.0190, 0.035, n_grid, "Finite difference", -0.002)
+    make_convergence(0.0190, 0.010, n_grid, "Malliavin", 0.000),
+    make_convergence(0.0190, 0.035, n_grid, "Finite difference", -0.002)
 )
 
 ggplot(digital_delta, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = 0.0190, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Digital call delta convergence",
-    subtitle = "Malliavin weight avoids differentiating the indicator",
-    x = "Number of Monte Carlo paths",
-    y = "Delta estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = 0.0190, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Digital call delta convergence",
+        subtitle = "Malliavin weight avoids differentiating the indicator",
+        x = "Number of Monte Carlo paths",
+        y = "Delta estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Digital Put Delta Convergence
 
 ```{r digital-put-delta, fig.height=3.6, fig.width=7.2, fig.align='center'}
 digital_put_delta <- rbind(
-  make_convergence(-0.0205, 0.010, n_grid, "Malliavin", 0.000),
-  make_convergence(-0.0205, 0.040, n_grid, "Finite difference", 0.003)
+    make_convergence(-0.0205, 0.010, n_grid, "Malliavin", 0.000),
+    make_convergence(-0.0205, 0.040, n_grid, "Finite difference", 0.003)
 )
 
 ggplot(digital_put_delta, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = -0.0205, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Digital put delta convergence",
-    subtitle = "Same comparison, opposite-sign indicator",
-    x = "Number of Monte Carlo paths",
-    y = "Delta estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = -0.0205, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Digital put delta convergence",
+        subtitle = "Same comparison, opposite-sign indicator",
+        x = "Number of Monte Carlo paths",
+        y = "Delta estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Digital Call Gamma Convergence
 
 ```{r digital-gamma, fig.height=3.6, fig.width=7.2, fig.align='center'}
 digital_gamma <- rbind(
-  make_convergence(-2.5e-4, 1.2e-4, n_grid, "Malliavin", 0),
-  make_convergence(-2.5e-4, 9.0e-4, n_grid, "Finite difference", 5e-5)
+    make_convergence(-2.5e-4, 1.2e-4, n_grid, "Malliavin", 0),
+    make_convergence(-2.5e-4, 9.0e-4, n_grid, "Finite difference", 5e-5)
 )
 
 ggplot(digital_gamma, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = -2.5e-4, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Digital call gamma convergence",
-    subtitle = "FD gamma blows up; Malliavin stays well-defined",
-    x = "Number of Monte Carlo paths",
-    y = "Gamma estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = -2.5e-4, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Digital call gamma convergence",
+        subtitle = "FD gamma blows up; Malliavin stays well-defined",
+        x = "Number of Monte Carlo paths",
+        y = "Gamma estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Digital Put Gamma Convergence
 
 ```{r digital-put-gamma, fig.height=3.6, fig.width=7.2, fig.align='center'}
 digital_put_gamma <- rbind(
-  make_convergence(-2.4e-4, 1.3e-4, n_grid, "Malliavin", 0),
-  make_convergence(-2.4e-4, 1.1e-3, n_grid, "Finite difference", -8e-5)
+    make_convergence(-2.4e-4, 1.3e-4, n_grid, "Malliavin", 0),
+    make_convergence(-2.4e-4, 1.1e-3, n_grid, "Finite difference", -8e-5)
 )
 
 ggplot(digital_put_gamma, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = -2.4e-4, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Digital put gamma convergence",
-    subtitle = "Same advantage as the call case",
-    x = "Number of Monte Carlo paths",
-    y = "Gamma estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = -2.4e-4, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Digital put gamma convergence",
+        subtitle = "Same advantage as the call case",
+        x = "Number of Monte Carlo paths",
+        y = "Gamma estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 # Results: Gap Options
@@ -732,100 +732,100 @@ $$
 
 ```{r gap-delta, fig.height=3.6, fig.width=7.2, fig.align='center'}
 gap_delta <- rbind(
-  make_convergence(0.435, 0.140, n_grid, "Malliavin", 0.000),
-  make_convergence(0.435, 0.260, n_grid, "Finite difference", -0.010)
+    make_convergence(0.435, 0.140, n_grid, "Malliavin", 0.000),
+    make_convergence(0.435, 0.260, n_grid, "Finite difference", -0.010)
 )
 
 ggplot(gap_delta, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = 0.435, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Gap call delta convergence",
-    subtitle = "Discontinuous trigger makes FD especially noisy",
-    x = "Number of Monte Carlo paths",
-    y = "Delta estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = 0.435, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Gap call delta convergence",
+        subtitle = "Discontinuous trigger makes FD especially noisy",
+        x = "Number of Monte Carlo paths",
+        y = "Delta estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Gap Put Delta Convergence
 
 ```{r gap-put-delta, fig.height=3.6, fig.width=7.2, fig.align='center'}
 gap_put_delta <- rbind(
-  make_convergence(-0.385, 0.150, n_grid, "Malliavin", 0.000),
-  make_convergence(-0.385, 0.270, n_grid, "Finite difference", 0.012)
+    make_convergence(-0.385, 0.150, n_grid, "Malliavin", 0.000),
+    make_convergence(-0.385, 0.270, n_grid, "Finite difference", 0.012)
 )
 
 ggplot(gap_put_delta, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = -0.385, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Gap put delta convergence",
-    subtitle = "Mirrored behavior on the put side",
-    x = "Number of Monte Carlo paths",
-    y = "Delta estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = -0.385, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Gap put delta convergence",
+        subtitle = "Mirrored behavior on the put side",
+        x = "Number of Monte Carlo paths",
+        y = "Delta estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Gap Call Gamma Convergence
 
 ```{r gap-gamma, fig.height=3.6, fig.width=7.2, fig.align='center'}
 gap_gamma <- rbind(
-  make_convergence(0.018, 0.006, n_grid, "Malliavin", 0),
-  make_convergence(0.018, 0.022, n_grid, "Finite difference", 0.0015)
+    make_convergence(0.018, 0.006, n_grid, "Malliavin", 0),
+    make_convergence(0.018, 0.022, n_grid, "Finite difference", 0.0015)
 )
 
 ggplot(gap_gamma, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = 0.018, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Gap call gamma convergence",
-    subtitle = "FD gamma stencil compounds the trigger noise",
-    x = "Number of Monte Carlo paths",
-    y = "Gamma estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = 0.018, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Gap call gamma convergence",
+        subtitle = "FD gamma stencil compounds the trigger noise",
+        x = "Number of Monte Carlo paths",
+        y = "Gamma estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 ## Gap Put Gamma Convergence
 
 ```{r gap-put-gamma, fig.height=3.6, fig.width=7.2, fig.align='center'}
 gap_put_gamma <- rbind(
-  make_convergence(0.017, 0.006, n_grid, "Malliavin", 0),
-  make_convergence(0.017, 0.024, n_grid, "Finite difference", -0.002)
+    make_convergence(0.017, 0.006, n_grid, "Malliavin", 0),
+    make_convergence(0.017, 0.024, n_grid, "Finite difference", -0.002)
 )
 
 ggplot(gap_put_gamma, aes(n, mean, color = method, fill = method)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
-  geom_line(linewidth = 0.9) +
-  geom_hline(yintercept = 0.017, linetype = "dotted", color = "gray25") +
-  scale_x_log10(labels = scales::label_number_si()) +
-  scale_color_manual(values = method_cols) +
-  scale_fill_manual(values = method_cols) +
-  labs(
-    title = "Gap put gamma convergence",
-    subtitle = "Same gamma weight, put-side trigger",
-    x = "Number of Monte Carlo paths",
-    y = "Gamma estimate",
-    color = NULL,
-    fill = NULL
-  )
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.14, color = NA) +
+    geom_line(linewidth = 0.9) +
+    geom_hline(yintercept = 0.017, linetype = "dotted", color = "gray25") +
+    scale_x_log10(labels = scales::label_number_si()) +
+    scale_color_manual(values = method_cols) +
+    scale_fill_manual(values = method_cols) +
+    labs(
+        title = "Gap put gamma convergence",
+        subtitle = "Same gamma weight, put-side trigger",
+        x = "Number of Monte Carlo paths",
+        y = "Gamma estimate",
+        color = NULL,
+        fill = NULL
+    )
 ```
 
 # Roughness Sensitivity
@@ -856,40 +856,44 @@ $$
 ```{r hurst-call, fig.height=3.6, fig.width=7.2, fig.align='center'}
 H_grid <- seq(0.06, 0.49, length.out = 80)
 hurst_call <- data.frame(
-  H = H_grid,
-  delta = 0.54 + 0.13 * tanh(4.0 * (H_grid - 0.24)) + 0.015 * sin(18 * H_grid)
+    H = H_grid,
+    delta = 0.54 + 0.13 * tanh(4.0 * (H_grid - 0.24)) + 0.015 * sin(18 * H_grid)
 )
 
 ggplot(hurst_call, aes(H, delta)) +
-  geom_line(linewidth = 1.1, color = "#2F5597") +
-  geom_point(data = hurst_call[seq(1, nrow(hurst_call), by = 12), ],
-             size = 1.7, color = "#2F5597") +
-  labs(
-    title = "Vanilla call delta vs roughness",
-    subtitle = "alpha-RFSV with remaining parameters fixed",
-    x = "Hurst parameter H",
-    y = "Delta"
-  )
+    geom_line(linewidth = 1.1, color = "#2F5597") +
+    geom_point(
+        data = hurst_call[seq(1, nrow(hurst_call), by = 12), ],
+        size = 1.7, color = "#2F5597"
+    ) +
+    labs(
+        title = "Vanilla call delta vs roughness",
+        subtitle = "alpha-RFSV with remaining parameters fixed",
+        x = "Hurst parameter H",
+        y = "Delta"
+    )
 ```
 
 ## Put Delta vs $H$
 
 ```{r hurst-put, fig.height=3.6, fig.width=7.2, fig.align='center'}
 hurst_put <- data.frame(
-  H = H_grid,
-  delta = -0.72 + 0.18 * tanh(3.5 * (H_grid - 0.26)) - 0.010 * sin(16 * H_grid)
+    H = H_grid,
+    delta = -0.72 + 0.18 * tanh(3.5 * (H_grid - 0.26)) - 0.010 * sin(16 * H_grid)
 )
 
 ggplot(hurst_put, aes(H, delta)) +
-  geom_line(linewidth = 1.1, color = "#C00000") +
-  geom_point(data = hurst_put[seq(1, nrow(hurst_put), by = 12), ],
-             size = 1.7, color = "#C00000") +
-  labs(
-    title = "Vanilla put delta vs roughness",
-    subtitle = "Mirrors the call sensitivity in opposite sign",
-    x = "Hurst parameter H",
-    y = "Delta"
-  )
+    geom_line(linewidth = 1.1, color = "#C00000") +
+    geom_point(
+        data = hurst_put[seq(1, nrow(hurst_put), by = 12), ],
+        size = 1.7, color = "#C00000"
+    ) +
+    labs(
+        title = "Vanilla put delta vs roughness",
+        subtitle = "Mirrors the call sensitivity in opposite sign",
+        x = "Hurst parameter H",
+        y = "Delta"
+    )
 ```
 
 # Conclusion

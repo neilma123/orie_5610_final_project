@@ -1,6 +1,6 @@
 ---
 title: "Computation of Greeks under rough Volterra stochastic volatility models using the Malliavin calculus approach"
-author: 
+author:
   - Neil Mascarenhas
   - Zijie Gu
 date: today
@@ -10,17 +10,76 @@ format:
     toc: true
     toc-depth: 2
     toc-title: "Contents"
+    theme: Madrid
+    colortheme: seahorse
+    aspectratio: 169
 ---
 
 ## Background  
 
+For a discounted payoff
 
+$$
+V^\theta = \mathbb{E}\left[e^{-rT} f(S_T^\theta)\right],
+$$
+
+a Greek is the partial derivative:
+
+$$
+\partial_\theta V^\theta
+= \partial_\theta \mathbb{E}[e^{-rT} f(S_T^\theta)]
+$$
+
+The project compares three estimator families:
+
+- Finite difference: generic, but sensitive to bump size.
+- Pathwise derivative: efficient, but needs enough payoff smoothness.
+- Malliavin / likelihood-ratio style: moves the derivative from the payoff to a random weight.
 
 ## Finite Difference
 
+$\partial_\theta V^\theta$ can be approximated by
+$$
+\partial_\theta V^\theta\approx\frac{V^{\theta+h}-V^{\theta-h}}{2h}
+$$
+
+This discretization has bias $O(h^2)$ and variance $O(h^{-2})$, and therefore
+- too large $h$ creates discretization bias;
+- too small $h$ amplifies Monte Carlo noise.
+
+The second order derivative is approximated by
+$$
+\partial^2_{\theta\theta} V^\theta\approx\frac{V^{\theta+h}-2V^\theta+V^{\theta-h}}{h^2}
+$$
+
+This discretization has bias $O(h^2)$ and variance $O(h^{-4})$ and can be very unstable.
+
 ## Pathwise Derivative
 
+If the payoff function $f$ is *nice* enough, we can swap the expectation and derivative
+$$
+\partial_\theta \mathbb{E}[e^{-rT} f(S_T^\theta)]=\mathbb{E}[\partial_\theta e^{-rT} f(S_T^\theta)]
+$$
+
+> $f$ is not *nice* if $f$ has discontinuity.
+
+The pathwise method is very efficient and accurate (0 bias), when applicable.
+
 ## Likelihood Ratio Method and the Malliavin Approach
+
+If the terminal state has density $p_\theta(x)$, then we have
+$$
+\partial_\theta \mathbb{E}[f(X^\theta)]=\mathbb{E}[f(X^\theta)\frac{\partial_\theta p_\theta(X^\theta)}{p_\theta(X^\theta)}]=\mathbb{E}_\theta[f(X^\theta)\partial_\theta \log p_\theta(X^\theta)]
+$$
+
+This is essentially computing a weighted ($\log p_\theta(X^\theta)$) mean of all the simulated payoffs.
+
+It is also very efficient and accurate (0 bias), provided we know $p_\theta(x)$ explicitly.
+
+Malliavin's method extends this method via the integration-by-parts formula:
+$$
+\partial_\theta \mathbb{E}[f(X^\theta)]=\mathbb{E}\Bigg[f(X^\theta)\cdot\delta\Bigg(\frac{\partial_\theta X^\theta h}{\int_0^Th_t\mathcal{D}_tX^\theta\mathrm{d}t}\Bigg)\Bigg]
+$$
 
 ## Numerical Experiment
 
