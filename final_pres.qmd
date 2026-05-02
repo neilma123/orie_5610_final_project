@@ -8,14 +8,11 @@ institute: "Cornell University"
 format:
   beamer:
     toc: true
-    toc-depth: 2
-    toc-title: "Contents"
-    theme: Madrid
-    colortheme: seahorse
-    aspectratio: 169
 ---
 
-## Background  
+# Estimator Introduction
+
+## Background
 
 For a discounted payoff
 
@@ -81,7 +78,7 @@ $$
 \partial_\theta \mathbb{E}[f(X^\theta)]=\mathbb{E}\Bigg[f(X^\theta)\cdot\delta\Bigg(\frac{\partial_\theta X^\theta h}{\int_0^Th_t\mathcal{D}_tX^\theta\mathrm{d}t}\Bigg)\Bigg]
 $$
 
-## Numerical Experiment
+# Numerical Experiment
 
 ## Experiment Setup
 
@@ -90,5 +87,7 @@ $$
 ## Results: Digital Options
 
 ## Results: Gap Options
+
+# Conclusion
 
 ## Conclusion
