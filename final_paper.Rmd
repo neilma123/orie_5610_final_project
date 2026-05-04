@@ -1,30 +1,652 @@
 ---
-title: "Final Paper"
+title: "Computation of Greeks under Rough Volterra Stochastic Volatility Models"
 author: "Neil Mascarenhas and Zijie Gu"
 date: "2026-04-29"
-output: pdf_document
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+geometry: margin=1in
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ```
 
-## R Markdown
+# Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Greeks are sensitivities of derivative prices with respect to market or model parameters. They are central to hedging because a trader who knows how an option value changes with the underlying asset price, volatility, interest rate, or model parameters can build a portfolio that offsets movements in those inputs. In the Black-Scholes model, Greeks for plain vanilla options are available in closed form. In rough stochastic volatility models, the same task is much harder. The volatility process is path dependent, often non-Markovian, and driven by a rough Gaussian Volterra process. For most payoffs and rough volatility models, one cannot write down an analytic price or analytic Greek.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+The paper studied in this project, *Computation of Greeks under rough Volterra stochastic volatility models using the Malliavin calculus approach*, develops Malliavin calculus formulas for Greeks in a broad family of rough Volterra stochastic volatility models. Malliavin calculus has already been applied in the Greek computation of SV models (non-rough).  The main idea is to avoid differentiating the payoff directly. Instead, an integration by parts formula transfers the derivative from the payoff to a random weight that can be simulated pathwise together with the payoff. This is especially useful for discontinuous payoffs, where pathwise differentiation is invalid.
 
-```{r cars}
-summary(cars)
+Our implementation focuses on a manageable part of the paper. We implemented Monte Carlo estimators for Delta and Gamma under two models:
+
+- the $\alpha$-RFSV model, using $\alpha=1$, which gives the rough Bergomi case;
+- the rough Stein-Stein model, a rough Volterra analogue of the classical Stein-Stein stochastic volatility model.
+
+For each model, we compare the Malliavin estimator with finite difference estimates. For vanilla options, we also include the pathwise derivative estimator for Delta. For discontinuous payoffs, we focus on Malliavin and finite difference methods because the pathwise method does not apply.
+
+# General Theory
+
+## Greeks as Derivatives of Expectations
+
+For a discounted European payoff, the time-zero option price has the form
+
+$$
+\begin{aligned}
+P(\theta)
+&= \mathbb{E}\left[e^{-rT} f(S_T^\theta)\right],
+\end{aligned}
+$$
+
+where $S_T^\theta$ is the terminal stock price under a model parameter $\theta$, $f$ is the payoff function, $r$ is the constant risk-free rate, and $T$ is maturity. A Greek is a derivative of this expectation:
+
+$$
+\begin{aligned}
+\partial_\theta P(\theta)
+&= \partial_\theta \mathbb{E}\left[e^{-rT} f(S_T^\theta)\right].
+\end{aligned}
+$$
+
+The paper derives formulas for several Greeks, including Delta, Gamma, Rho, Vega, and a sensitivity with respect to the Hurst parameter $H$. In our numerical work, we concentrate on Delta and Gamma:
+
+$$
+\begin{aligned}
+\Delta
+&= \partial_{S_0}\mathbb{E}\left[e^{-rT}f(S_T)\right], \\
+\Gamma
+&= \partial_{S_0}^2\mathbb{E}\left[e^{-rT}f(S_T)\right].
+\end{aligned}
+$$
+
+The key difficulty is that the derivative cannot always be moved inside the expectation. For smooth vanilla payoffs, the pathwise derivative often works well. For digital or gap options, the payoff has a discontinuity, so a pathwise derivative is zero almost everywhere or undefined at the strike. Finite difference methods remain available, but they introduce a bump-size tradeoff and can have high variance, especially for second derivatives.
+
+## Rough Volterra Stochastic Volatility
+
+The stock price model considered in the paper is a stochastic volatility model under the risk-neutral measure:
+
+$$
+\begin{aligned}
+dS_t
+&= rS_t\,dt + \sigma(V_t)S_t\,dW_t, \\
+S_T
+&= S_0\exp\left(
+rT - \frac{1}{2}\int_0^T \sigma^2(V_s)\,ds
++ \int_0^T \sigma(V_s)\,dW_s
+\right).
+\end{aligned}
+$$
+
+In our implementation, $\sigma(x)=x$, so $V_t$ is treated as the volatility process. The roughness comes from a Gaussian Volterra driver
+
+$$
+\begin{aligned}
+Y_t
+&= \int_0^t K_H(t,s)\,dZ_s, \\
+Z_s
+&= \rho W_s + \sqrt{1-\rho^2}\widetilde{W}_s,
+\end{aligned}
+$$
+
+where $W$ and $\widetilde{W}$ are independent Brownian motions and $\rho$ controls the correlation between the price and volatility shocks. The numerical implementation uses the approximate Riemann-Liouville kernel
+
+$$
+\begin{aligned}
+K_H(t,s)
+&= \sqrt{2H}(t-s+\varepsilon)^{H-\frac{1}{2}},
+\end{aligned}
+$$
+
+with small $\varepsilon>0$. When $H<1/2$, the volatility paths are rougher than Brownian paths. This is the regime commonly used to fit the steep short-maturity implied volatility skews observed in markets.
+
+## Malliavin Integration by Parts
+
+The central mathematical tool is a Malliavin integration by parts formula. In a simplified form, if $F^\theta$ is a sufficiently regular random variable and $h$ is a process satisfying a nondegeneracy condition, then
+
+$$
+\begin{aligned}
+\partial_\theta \mathbb{E}\left[\Phi^\theta f(F^\theta)\right]
+&=
+\mathbb{E}\left[
+f(F^\theta)\,
+\delta\left(
+\frac{\Phi^\theta \partial_\theta F^\theta h}
+{\int_0^T D_tF^\theta h_t\,dt}
+\right)
+\right]
++ \mathbb{E}\left[f(F^\theta)\partial_\theta\Phi^\theta\right],
+\end{aligned}
+$$
+
+where $D_t$ is the Malliavin derivative and $\delta$ is the Skorohod integral. The important point is that the derivative of $f$ no longer appears. This allows the same formula to be used for nonsmooth payoffs after an approximation argument.
+
+For the stochastic volatility model, define
+
+$$
+\begin{aligned}
+D_tS_T
+&= S_TG(t,T),
+\end{aligned}
+$$
+
+where
+
+$$
+\begin{aligned}
+G(t,T)
+&=
+\sigma(V_t)
++ \int_t^T \sigma'(V_s)D_tV_s\,dW_s
+- \int_t^T \sigma(V_s)\sigma'(V_s)D_tV_s\,ds.
+\end{aligned}
+$$
+
+The paper shows that the model-specific part of the calculation is essentially the computation of $G(t,T)$ and its Malliavin derivative. Once those quantities are known, the Greek formulas follow.
+
+For our Delta and Gamma implementation, we use the choice $h_t=1$. Define
+
+$$
+\begin{aligned}
+G_T
+&= \int_0^T G(u,T)\,du, \\
+A_T
+&= \int_0^T D_sG_T\,ds, \\
+B_T
+&= \int_0^T\int_0^T D_tD_sG_T\,ds\,dt.
+\end{aligned}
+$$
+
+The simulated Malliavin weights are
+
+$$
+\begin{aligned}
+\omega_\Delta
+&= \frac{W_T}{G_T} + \frac{A_T}{G_T^2}, \\
+\omega_\Gamma
+&= -\omega_\Delta + \omega_\Delta^2
+- \left(
+\frac{T}{G_T}
+- \frac{W_TA_T}{G_T^2}
++ \frac{B_T}{G_T}
+- \frac{2A_T^2}{G_T^3}
+\right).
+\end{aligned}
+$$
+
+Therefore, for any payoff $f(S_T)$, the estimators used in the experiments are
+
+$$
+\begin{aligned}
+\widehat{\Delta}_{\mathrm{Mal}}
+&=
+\frac{1}{N}\sum_{i=1}^N
+e^{-rT}f(S_T^{(i)})\frac{\omega_\Delta^{(i)}}{S_0}, \\
+\widehat{\Gamma}_{\mathrm{Mal}}
+&=
+\frac{1}{N}\sum_{i=1}^N
+e^{-rT}f(S_T^{(i)})\frac{\omega_\Gamma^{(i)}}{S_0^2}.
+\end{aligned}
+$$
+
+These formulas are attractive because the payoff appears only as a multiplicative term. The same code structure can therefore be used for vanilla, digital, and gap payoffs.
+
+## The $\alpha$-RFSV Model
+
+The first model implemented is the $\alpha$-RFSV model:
+
+$$
+\begin{aligned}
+V_t
+&=
+V_0\exp\left\{
+\xi Y_t - \frac{1}{2}\alpha\xi^2 r(t)
+\right\}, \\
+r(t)
+&= (t+\varepsilon)^{2H}-\varepsilon^{2H}.
+\end{aligned}
+$$
+
+The parameter $\xi$ is the volatility of volatility, while $\alpha$ controls the correction term. The special case $\alpha=1$ corresponds to the rough Bergomi model. This is the case used in our experiments. The paper also notes that $\alpha=0$ gives the non-stationary RFSV model, and the family includes important rough versions of models such as Bergomi and SABR.
+
+For $\sigma(x)=x$, the Malliavin derivative of the volatility has the simple form
+
+$$
+\begin{aligned}
+D_sV_t
+&= \rho\xi V_tK_H(t,s)\mathbf{1}_{\{s\leq t\}}.
+\end{aligned}
+$$
+
+This leads to explicit expressions for $G_T$, $A_T$, and $B_T$. In the experiment, these are discretized as sums involving $V_t$, $V_t^2$, Brownian increments, and
+
+$$
+\begin{aligned}
+\kappa_t
+&= \int_0^t K_H(t,s)\,ds.
+\end{aligned}
+$$
+
+The resulting implementation is efficient because the $\alpha$-RFSV formulas reduce the Malliavin weights to one-dimensional time integrals along each simulated path.
+
+## The Rough Stein-Stein Model
+
+The second model implemented is the rough Stein-Stein model:
+
+$$
+\begin{aligned}
+V_t
+&=
+V_0
++ \int_0^t \kappa(\theta - V_u)\,du
++ \nu\int_0^t K_H(t,u)\,dZ_u.
+\end{aligned}
+$$
+
+Here $\kappa$ is the mean-reversion speed, $\theta$ is the long-run level, and $\nu$ is the volatility of volatility. The Malliavin derivative satisfies a linear Volterra equation:
+
+$$
+\begin{aligned}
+D_tV_s
+&=
+\rho\nu K_H(s,t)
+- \kappa\int_t^s D_tV_u\,du,
+\qquad t\leq s.
+\end{aligned}
+$$
+
+The paper gives the solution
+
+$$
+\begin{aligned}
+D_tV_s
+&=
+\rho\nu K_H(s,t)
+- \kappa\rho\nu\int_t^s K_H(u,t)e^{-\kappa(s-u)}\,du.
+\end{aligned}
+$$
+
+Since $D_tV_s$ is deterministic conditional on the model parameters, the second Malliavin derivative term is zero in the rough Stein-Stein case:
+
+$$
+\begin{aligned}
+B_T
+&= \int_0^T\int_0^T D_tD_sG_T\,ds\,dt = 0.
+\end{aligned}
+$$
+
+This simplifies the Gamma weight. In practice, however, the rough Stein-Stein denominator $G_T$ can be close to zero on some simulated paths. Since the Malliavin weights contain powers of $1/G_T$, the implementation filters paths with $|G_T| \leq 0.05$ to avoid extreme numerical explosions. This is not a theoretical part of the estimator, but a practical stabilization step.
+
+# Implementation
+
+## Simulation Design
+
+Both experiments use the same broad Monte Carlo design. We simulate $N=200{,}000$ paths with $2{,}000$ time steps over a one-year horizon. The shared parameters are
+
+$$
+\begin{aligned}
+S_0 &= 100, &
+r &= 0.05, &
+T &= 1, \\
+H &= 0.15, &
+\rho &= -0.756, &
+V_0 &= 0.354, \\
+\varepsilon &= 10^{-6}, &
+h &= 10^{-5}.
+\end{aligned}
+$$
+
+The $\alpha$-RFSV experiment uses
+
+$$
+\begin{aligned}
+\alpha &= 1, &
+\xi &= 0.212,
+\end{aligned}
+$$
+
+and the rough Stein-Stein experiment uses
+
+$$
+\begin{aligned}
+\kappa &= 2.0, &
+\theta &= 0.5, &
+\nu &= 0.3.
+\end{aligned}
+$$
+
+The Brownian increments are simulated directly. The rough driver is generated by constructing the lower-triangular kernel matrix $K_H(t_i,t_j)$ and multiplying Brownian increments by this matrix. 
+
+The stock terminal value is computed using the Euler-Maruyama discretization on log-price:
+
+$$
+\begin{aligned}
+\log\left(\frac{S_T}{S_0}\right)
+&=
+rT
+-\frac{1}{2}\sum_{i=1}^{n}V_{t_i}^2\Delta t
++\sum_{i=1}^{n}V_{t_i}\Delta W_{t_i}.
+\end{aligned}
+$$
+
+For finite differences, we reuse the same simulated volatility paths and Brownian shocks, changing only the initial stock price from $S_0$ to $S_0+h$ and $S_0-h$. This common-random-number design reduces variance relative to using independent simulations for the bumped prices.
+
+## Payoffs
+
+We test three payoff families:
+
+$$
+\begin{aligned}
+\text{Vanilla call: }& f(S_T)=(S_T-K)^+, \\
+\text{Vanilla put: }& f(S_T)=(K-S_T)^+, \\
+\text{Digital call: }& f(S_T)=\mathbf{1}_{\{S_T>K\}}, \\
+\text{Digital put: }& f(S_T)=\mathbf{1}_{\{S_T<K\}}, \\
+\text{Gap call: }& f(S_T)=\mathbf{1}_{\{S_T>K_1\}}(S_T-K_2)^+, \\
+\text{Gap put: }& f(S_T)=\mathbf{1}_{\{S_T<K_1\}}(K_2-S_T)^+.
+\end{aligned}
+$$
+
+For vanilla options we use $K=100$. For gap options, the implementation uses $(K_1,K_2)=(110,100)$ for the call and $(K_1,K_2)=(90,100)$ for the put. For reference, payoff diagrams for these vanilla, digital, and gap options are shown in Appendix \ref{app:payoff-diagrams}.
+
+## Finite Difference Estimators
+
+The standard method is to bump the parameter and approximate derivatives by central differences. For Delta,
+
+$$
+\begin{aligned}
+\widehat{\Delta}_{\mathrm{FD}}
+&=
+\frac{\widehat{P}(S_0+h)-\widehat{P}(S_0-h)}{2h}.
+\end{aligned}
+$$
+
+For Gamma,
+
+$$
+\begin{aligned}
+\widehat{\Gamma}_{\mathrm{FD}}
+&=
+\frac{\widehat{P}(S_0+h)-2\widehat{P}(S_0)+\widehat{P}(S_0-h)}{h^2}.
+\end{aligned}
+$$
+
+Finite difference is easy to implement and does not require deriving Malliavin weights. Its weakness is the bump-size tradeoff. If $h$ is too large, the estimator has discretization bias. If $h$ is too small, Monte Carlo noise is divided by a small number. This problem becomes much worse for Gamma because the denominator is $h^2$.
+
+## Pathwise Delta Estimator
+
+For vanilla payoffs, the pathwise derivative method differentiates the payoff along each simulated path. Since $S_T=S_0E_T$ for a simulated return factor $E_T$, the vanilla call pathwise Delta is
+
+$$
+\begin{aligned}
+\widehat{\Delta}_{\mathrm{PW,call}}
+&=
+\frac{1}{N}\sum_{i=1}^N
+e^{-rT}\mathbf{1}_{\{S_T^{(i)}>K\}}\frac{S_T^{(i)}}{S_0}.
+\end{aligned}
+$$
+
+For a vanilla put,
+
+$$
+\begin{aligned}
+\widehat{\Delta}_{\mathrm{PW,put}}
+&=
+-\frac{1}{N}\sum_{i=1}^N
+e^{-rT}\mathbf{1}_{\{S_T^{(i)}<K\}}\frac{S_T^{(i)}}{S_0}.
+\end{aligned}
+$$
+
+This estimator is usually low variance when applicable. It is not applicable for digital options because a digital payoff is not Lipschitz continuous.
+
+## Malliavin Estimators
+
+The Malliavin estimator multiplies the payoff by a random weight. In the implementation, the model-specific work is done before payoff evaluation. The experiments first simulate $V_t$ and $S_T$, then compute $G_T$, $A_T$, $B_T$ via forward Riemann sum, and finally compute $\omega_\Delta$ and $\omega_\Gamma$. Each payoff can then be priced with the same weight arrays.
+
+For the $\alpha$-RFSV model, the code uses
+
+$$
+\begin{aligned}
+G_T
+&=
+\int_0^T V_t\,dt
++\rho\xi\left(
+\int_0^T V_t\kappa_t\,dW_t
+-\int_0^T V_t^2\kappa_t\,dt
+\right).
+\end{aligned}
+$$
+
+For the rough Stein-Stein model, the code computes the matrix approximation to $D_tV_s$, forms
+
+$$
+\begin{aligned}
+I_s
+&= \int_0^s D_tV_s\,dt,
+\end{aligned}
+$$
+
+and uses
+
+$$
+\begin{aligned}
+G_T
+&=
+\int_0^T V_s\,ds
++\int_0^T I_s(dW_s - V_s\,ds).
+\end{aligned}
+$$
+
+The rough Stein-Stein experiment then removes paths with very small $|G_T|$. This makes the plotted convergence more stable, but it also means the implemented estimator is not a completely unmodified Monte Carlo average. That tradeoff is important when interpreting the results.
+
+# Numerical Results
+
+## Simulated Paths
+
+The figures below show one simulated stock and volatility path for each model. The roughness is visible in the volatility paths: even though the stock price is continuous, the volatility process changes irregularly over time because it is driven by the rough Volterra process.
+
+```{r paths, fig.cap="Example simulated stock and volatility paths under rough Stein-Stein and alpha-RFSV.", out.width="49%", fig.show="hold"}
+knitr::include_graphics(c("www/stein_path.png", "www/rough_vol_path.png"))
 ```
 
-## Including Plots
+## Vanilla Options
 
-You can also embed plots, for example:
+For vanilla calls and puts, all three Delta estimators are available: Malliavin, finite difference, and pathwise. The convergence plots show that the Malliavin and pathwise Delta estimators are much more stable than the finite difference Gamma estimates. For Delta, finite differences are reasonable on vanilla payoffs because the payoff is continuous and common random numbers reduce noise. For Gamma, the finite difference estimator is visibly more fragile because the second derivative divides by $h^2$.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r vanilla-call, fig.cap="Vanilla call convergence under rough Stein-Stein and alpha-RFSV.", out.width="49%", fig.show="hold"}
+knitr::include_graphics(c("www/vanilla_call_stein.png", "www/vanilla_call_RFSV.png"))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r vanilla-put, fig.cap="Vanilla put convergence under rough Stein-Stein and alpha-RFSV.", out.width="49%", fig.show="hold"}
+knitr::include_graphics(c("www/vanilla_put_stein.png", "www/vanilla_put_RFSV.png"))
+```
+
+The pathwise Delta is the cleanest benchmark for vanilla options because it differentiates the simulated terminal value directly. Malliavin Delta generally tracks it well, which is a useful check that the weights are implemented correctly. Gamma is where the Malliavin method is more valuable, because a pathwise Gamma would require differentiating the payoff derivative and finite difference Gamma is very sensitive to the bump size.
+
+## Digital Options
+
+Digital options are the clearest case where the Malliavin method has an advantage. The payoff jumps at the strike:
+
+$$
+\begin{aligned}
+f(S_T)
+&= \mathbf{1}_{\{S_T>K\}}
+\quad \text{or} \quad
+f(S_T)=\mathbf{1}_{\{S_T<K\}}.
+\end{aligned}
+$$
+
+The pathwise derivative is not useful for this payoff. Finite differences estimate the sensitivity by comparing two nearby indicators, but this makes the estimator depend heavily on whether simulated paths fall within a narrow band around the strike. As a result, finite difference estimates can be noisy and unstable.
+
+```{r digital-call, fig.cap="Digital call convergence under rough Stein-Stein and alpha-RFSV.", out.width="49%", fig.show="hold"}
+knitr::include_graphics(c("www/digital_call_stein.png", "www/digital_call_RFSV.png"))
+```
+
+```{r digital-put, fig.cap="Digital put convergence under rough Stein-Stein and alpha-RFSV.", out.width="49%", fig.show="hold"}
+knitr::include_graphics(c("www/digital_put_stein.png", "www/digital_put_RFSV.png"))
+```
+
+The Malliavin estimator handles the discontinuity more naturally because the derivative is represented by the weight rather than by differentiating the indicator. The payoff is still discontinuous, but it is only multiplied by the weight in the final average.
+
+## Gap Options
+
+Gap options combine a discontinuous trigger with a vanilla-like payoff amount. They are a useful stress test because they contain both a jump at the trigger strike and a linear payoff beyond it.
+
+```{r gap-call, fig.cap="Gap call convergence under rough Stein-Stein and alpha-RFSV.", out.width="49%", fig.show="hold"}
+knitr::include_graphics(c("www/gap_call_stein.png", "www/gap_call_RFSV.png"))
+```
+
+```{r gap-put, fig.cap="Gap put convergence under rough Stein-Stein and alpha-RFSV.", out.width="49%", fig.show="hold"}
+knitr::include_graphics(c("www/gap_put_stein.png", "www/gap_put_RFSV.png"))
+```
+
+The results are consistent with the digital option case. Finite difference estimates are sensitive to how many paths cross the trigger after the bump. Malliavin estimates are not free of variance, but they avoid the most direct discontinuity problem.
+
+# Criticisms, Advantages, and Disadvantages
+
+## Advantages of the Malliavin Approach
+
+The main advantage of the Malliavin method is that it separates the payoff from the differentiation. Once the model-specific weights are derived and implemented, the same weights can be reused for many payoffs. This is particularly valuable for discontinuous payoffs such as digital and gap options.
+
+The method is also useful for higher-order Greeks. Gamma is difficult to estimate by finite difference because the estimator divides by $h^2$. The Malliavin Gamma weight avoids choosing a bump size and can be applied to payoffs for which direct pathwise differentiation is not available.
+
+Finally, the theory is well matched to rough volatility models. The paper identifies $G(t,T)$ and $D_sG(t,T)$ as the core model-specific quantities. This gives a systematic recipe: derive the Malliavin derivatives of the volatility process, construct $G(t,T)$, integrate it, and plug the result into the general Greek formula.
+
+## Disadvantages and Practical Difficulties
+
+The first disadvantage is complexity. Finite difference and pathwise estimators can be written down quickly. Malliavin estimators require substantial model-specific derivation. A small algebraic or implementation error in $G_T$, $A_T$, or $B_T$ can bias every payoff estimate.
+
+The second disadvantage is numerical instability when $G_T$ is close to zero. Since the weights contain $1/G_T$, $1/G_T^2$, and $1/G_T^3$, a few paths can dominate the average. This issue appears most clearly in the rough Stein-Stein implementation, where we filter paths with small $|G_T|$. Filtering improves numerical stability, but it also changes the estimator and should be interpreted as a practical approximation rather than a fully exact implementation of the formula.
+
+The third disadvantage is computational cost. Malliavin estimation required the simulation of full paths, whereas the other two do not.
+
+## Comparison with Finite Difference and Pathwise Methods
+
+Finite difference is the most general method because it treats the pricing function as a black box. It is easy to apply to almost any payoff and almost any parameter. Its weakness is the bump-size problem. This is manageable for Delta in smooth problems, but much more severe for Gamma and for discontinuous payoffs.
+
+Pathwise differentiation is usually the best method when it applies. For vanilla Delta, it is simple, fast, and low variance. Its main limitation is payoff smoothness. It does not give a useful estimator for digital options, and it becomes more complicated for higher-order Greeks.
+
+Malliavin calculus sits between these methods. It is less automatic than finite difference and more mathematically involved than pathwise differentiation, but it applies to nonsmooth payoffs and higher-order Greeks in a way that the other two methods do not. In this project, its strongest use case is estimating Delta and Gamma for digital and gap options under rough volatility.
+
+## Model Criticism
+
+Rough volatility models are attractive because they capture empirical features such as rough volatility paths and steep short-maturity implied volatility skews. The Hurst parameter gives a direct way to tune the roughness of volatility. The $\alpha$-RFSV and rough Stein-Stein models also remain interpretable: the former is closely related to rough Bergomi, while the latter preserves the mean-reverting structure of Stein-Stein.
+
+However, these models are not easy to calibrate or simulate. The non-Markovian Volterra structure means that the entire past affects the current volatility. This increases memory use and computation time. The model also introduces parameters such as $H$, $\rho$, $\xi$, $\nu$, and $\kappa$ whose joint calibration can be delicate. A model may fit option prices well but still produce unstable Greek estimates if the Malliavin denominators become small.
+
+Another limitation is that our implementation focuses only on Delta and Gamma. The paper derives more Greeks, including Vega, Rho, and sensitivity to $H$. Those formulas are important, but they require additional derivative terms and were beyond the scope of our implementation. A full implementation would need careful validation against finite differences over a range of parameters and payoffs.
+
+## Applications
+
+The Malliavin approach is most useful when a desk needs Monte Carlo Greeks for exotic products with nonsmooth payoffs under a stochastic volatility model. Examples include digitals, barriers, gap options, and structured products with trigger features. These are exactly the settings where pathwise differentiation fails and finite difference can become noisy.
+
+In practice, the method would be best used with variance reduction, careful denominator regularization, and a faster rough volatility simulation scheme. It is better viewed as a specialized tool for difficult Greeks than as a replacement for all Greek estimation methods. For smooth vanilla Delta, pathwise differentiation remains simpler. For quick model prototyping, finite difference remains useful. For discontinuous payoffs and Gamma under rough volatility, Malliavin weights are the most compelling approach among the methods we tested.
+
+# Conclusion
+
+The paper provides a general Malliavin calculus framework for computing Greeks under rough Volterra stochastic volatility models. Its main contribution is to reduce the Greek computation to model-specific formulas for $G(t,T)$ and its Malliavin derivatives. Once these quantities are available, Delta, Gamma, and other Greeks can be estimated by Monte Carlo as payoff-weighted averages.
+
+Our implementation confirms the practical value of this approach for two models: $\alpha$-RFSV in the rough Bergomi case and rough Stein-Stein. For vanilla payoffs, Malliavin Delta agrees well with the pathwise benchmark. For digital and gap payoffs, Malliavin estimators are more appropriate than pathwise differentiation and more stable in principle than finite differences. The main costs are derivation complexity, high simulation expense, and possible weight instability when the Malliavin denominator is small.
+
+Overall, Malliavin calculus is a strong method for rough-volatility Greek estimation when the payoff is nonsmooth or the Greek is high order. It is not the simplest method, but it addresses exactly the cases where the standard alternatives are weakest.
+
+# References
+
+Al-Foraih, M., Bures, O., Pospisil, J., and Vives, J. (2025). *Computation of Greeks under rough Volterra stochastic volatility models using the Malliavin calculus approach*. arXiv:2312.00405v2.
+
+\appendix
+
+# Payoff Diagrams {#app:payoff-diagrams}
+
+## Vanilla Payoffs
+
+```{r appendix-vanilla-payoffs, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=4.4, out.width="100%"}
+S <- seq(50, 150, length.out = 1000)
+K <- 100
+
+vanilla_call <- pmax(S - K, 0)
+vanilla_put <- pmax(K - S, 0)
+
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 0, 0))
+
+plot(S, vanilla_call, type = "l", lwd = 3, col = "#1f77b4",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Vanilla Call")
+abline(v = K, lty = 2, col = "gray40")
+grid()
+
+plot(S, vanilla_put, type = "l", lwd = 3, col = "#d62728",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Vanilla Put")
+abline(v = K, lty = 2, col = "gray40")
+grid()
+
+par(old_par)
+```
+
+## Digital Payoffs
+
+```{r appendix-digital-payoffs, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=4.4, out.width="100%"}
+S <- seq(50, 150, length.out = 1000)
+K <- 100
+
+digital_call <- as.numeric(S > K)
+digital_put <- as.numeric(S < K)
+
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 0, 0))
+
+plot(S, digital_call, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Digital Call", ylim = c(-0.05, 1.05))
+grid()
+lines(c(min(S), K), c(0, 0), lwd = 3, col = "#1f77b4")
+lines(c(K, max(S)), c(1, 1), lwd = 3, col = "#1f77b4")
+points(K, 0, pch = 1, cex = 1.6, lwd = 2, col = "#1f77b4")
+points(K, 1, pch = 19, cex = 1.6, col = "#1f77b4")
+
+plot(S, digital_put, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Digital Put", ylim = c(-0.05, 1.05))
+grid()
+lines(c(min(S), K), c(1, 1), lwd = 3, col = "#d62728")
+lines(c(K, max(S)), c(0, 0), lwd = 3, col = "#d62728")
+points(K, 0, pch = 1, cex = 1.6, lwd = 2, col = "#d62728")
+points(K, 1, pch = 19, cex = 1.6, col = "#d62728")
+
+par(old_par)
+```
+
+## Gap Payoffs
+
+```{r appendix-gap-payoffs, echo=FALSE, warning=FALSE, message=FALSE, fig.width=12, fig.height=4.4, out.width="100%"}
+S <- seq(50, 150, length.out = 1000)
+K2 <- 100
+K1_call <- 110
+K1_put <- 90
+
+gap_call <- as.numeric(S > K1_call) * pmax(S - K2, 0)
+gap_put <- as.numeric(S < K1_put) * pmax(K2 - S, 0)
+
+old_par <- par(mfrow = c(1, 2), mar = c(4, 4, 2, 1), oma = c(0, 0, 0, 0))
+
+plot(S, gap_call, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Gap Call")
+abline(v = K2, lty = 3, col = "gray55")
+grid()
+lines(c(min(S), K1_call), c(0, 0), lwd = 3, col = "#1f77b4")
+lines(S[S >= K1_call], S[S >= K1_call] - K2, lwd = 3, col = "#1f77b4")
+points(K1_call, 0, pch = 1, cex = 1.6, lwd = 2, col = "#1f77b4")
+points(K1_call, K1_call - K2, pch = 19, cex = 1.6, col = "#1f77b4")
+
+plot(S, gap_put, type = "n",
+     xlab = expression(S[T]), ylab = "Payoff",
+     main = "Gap Put")
+abline(v = K2, lty = 3, col = "gray55")
+grid()
+lines(S[S <= K1_put], K2 - S[S <= K1_put], lwd = 3, col = "#d62728")
+lines(c(K1_put, max(S)), c(0, 0), lwd = 3, col = "#d62728")
+points(K1_put, 0, pch = 1, cex = 1.6, lwd = 2, col = "#d62728")
+points(K1_put, K2 - K1_put, pch = 19, cex = 1.6, col = "#d62728")
+
+par(old_par)
+```
